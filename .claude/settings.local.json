@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest warm-up-court-finder --tailwind --no-typescript --no-app --no-src-dir --no-eslint --import-alias \"@/*\")"
+    ]
+  }
+}

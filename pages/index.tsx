@@ -14,21 +14,23 @@ export default function Home() {
   const [courts, setCourts] = useState<Court[] | null>(null);
   const [venueLocation, setVenueLocation] = useState<VenueLocation | null>(null);
   const [venueAddress, setVenueAddress] = useState('');
+  const [maxDriveMinutes, setMaxDriveMinutes] = useState(15);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSearch(address: string) {
+  async function handleSearch(address: string, minutes: number) {
     setIsLoading(true);
     setError('');
     setCourts(null);
     setVenueLocation(null);
     setVenueAddress(address);
+    setMaxDriveMinutes(minutes);
 
     try {
       const res = await fetch('/api/find-courts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address, maxDriveMinutes: minutes }),
       });
 
       const data = await res.json();
@@ -68,7 +70,7 @@ export default function Home() {
           <div className="mx-auto max-w-5xl px-4 py-6">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">🎾 Warm Up Court Finder</h1>
             <p className="mt-1 text-green-100">
-              Find public tennis courts within a 15-minute drive of your tournament venue
+              Find public tennis courts within a {maxDriveMinutes}-minute drive of your tournament venue
             </p>
           </div>
         </header>
@@ -113,7 +115,7 @@ export default function Home() {
                 />
               </section>
               <section>
-                <CourtList courts={courts} venueAddress={venueAddress} />
+                <CourtList courts={courts} venueAddress={venueAddress} maxDriveMinutes={maxDriveMinutes} />
               </section>
             </>
           )}
@@ -121,7 +123,7 @@ export default function Home() {
           {/* Courts returned but venue geocode failed */}
           {!isLoading && courts !== null && !venueLocation && (
             <section>
-              <CourtList courts={courts} venueAddress={venueAddress} />
+              <CourtList courts={courts} venueAddress={venueAddress} maxDriveMinutes={maxDriveMinutes} />
             </section>
           )}
         </main>

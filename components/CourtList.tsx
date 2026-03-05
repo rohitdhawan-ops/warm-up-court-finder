@@ -3,13 +3,14 @@ import { Court } from '../pages/api/find-courts';
 interface CourtListProps {
   courts: Court[];
   venueAddress: string;
+  maxDriveMinutes: number;
 }
 
-export default function CourtList({ courts, venueAddress }: CourtListProps) {
+export default function CourtList({ courts, venueAddress, maxDriveMinutes }: CourtListProps) {
   if (courts.length === 0) {
     return (
       <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6 text-center text-yellow-800">
-        <p className="text-lg font-medium">No courts found within 15 minutes</p>
+        <p className="text-lg font-medium">No courts found within {maxDriveMinutes} minutes</p>
         <p className="mt-1 text-sm">Try a different address or check that your API key is active.</p>
       </div>
     );
@@ -18,7 +19,7 @@ export default function CourtList({ courts, venueAddress }: CourtListProps) {
   return (
     <div>
       <h2 className="mb-3 text-xl font-semibold text-gray-800">
-        {courts.length} court{courts.length !== 1 ? 's' : ''} found within 15 minutes
+        {courts.length} court{courts.length !== 1 ? 's' : ''} found within {maxDriveMinutes} minutes
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {courts.map((court) => {

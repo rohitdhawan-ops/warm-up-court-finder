@@ -75,10 +75,11 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { address } = req.body as { address: string };
+  const { address, maxDriveMinutes } = req.body as { address: string; maxDriveMinutes?: number };
   if (!address?.trim()) {
     return res.status(400).json({ error: 'Address is required' });
   }
+  const maxMinutes = typeof maxDriveMinutes === 'number' && maxDriveMinutes > 0 ? maxDriveMinutes : 15;
 
   if (!API_KEY || API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
     return res.status(500).json({ error: 'Google Maps API key is not configured' });
@@ -107,8 +108,8 @@ export default async function handler(
       driveTimesSeconds.push(...times);
     }
 
-    // Step 4: Filter to ≤ 15 min drive, build result objects, sort ascending
-    const MAX_SECONDS = 15 * 60;
+    // Step 4: Filter to ≤ maxMinutes drive, build result objects, sort ascending
+    const MAX_SECONDS = maxMinutes * 60;
     const results: Court[] = allCourts
       .map((court, i) => ({
         name: court.name,
