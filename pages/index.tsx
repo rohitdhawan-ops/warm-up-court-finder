@@ -1,78 +1,135 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import { useState } from 'react';
+import Head from 'next/head';
+import SearchForm from '../components/SearchForm';
+import CourtMap from '../components/CourtMap';
+import CourtList from '../components/CourtList';
+import { Court } from './api/find-courts';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+interface VenueLocation {
+  lat: number;
+  lng: number;
+}
 
 export default function Home() {
+  const [courts, setCourts] = useState<Court[] | null>(null);
+  const [venueLocation, setVenueLocation] = useState<VenueLocation | null>(null);
+  const [venueAddress, setVenueAddress] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSearch(address: string) {
+    setIsLoading(true);
+    setError('');
+    setCourts(null);
+    setVenueLocation(null);
+    setVenueAddress(address);
+
+    try {
+      const res = await fetch('/api/find-courts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      // Geocode the venue address to get coordinates for the map center
+      const geoRes = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      );
+      const geoData = await geoRes.json();
+      if (geoData.status === 'OK' && geoData.results.length > 0) {
+        setVenueLocation(geoData.results[0].geometry.location);
+      }
+
+      setCourts(data as Court[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <Head>
+        <title>Warm Up Court Finder</title>
+        <meta name="description" content="Find public tennis courts near your USTA tournament site" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-green-700 text-white shadow">
+          <div className="mx-auto max-w-5xl px-4 py-6">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">🎾 Warm Up Court Finder</h1>
+            <p className="mt-1 text-green-100">
+              Find public tennis courts within a 15-minute drive of your tournament venue
+            </p>
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+          {/* Search */}
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Tournament Venue Address
+            </label>
+            <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+          </section>
+
+          {/* Error */}
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {isLoading && (
+            <div className="space-y-4 animate-pulse">
+              <div className="h-64 rounded-xl bg-gray-200" />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-32 rounded-lg bg-gray-200" />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Results */}
+          {!isLoading && courts !== null && venueLocation && (
+            <>
+              <section className="overflow-hidden rounded-xl shadow-sm">
+                <CourtMap
+                  venueLocation={venueLocation}
+                  venueAddress={venueAddress}
+                  courts={courts}
+                />
+              </section>
+              <section>
+                <CourtList courts={courts} venueAddress={venueAddress} />
+              </section>
+            </>
+          )}
+
+          {/* Courts returned but venue geocode failed */}
+          {!isLoading && courts !== null && !venueLocation && (
+            <section>
+              <CourtList courts={courts} venueAddress={venueAddress} />
+            </section>
+          )}
+        </main>
+
+        <footer className="mt-12 border-t border-gray-200 py-6 text-center text-sm text-gray-400">
+          Powered by Google Maps • Built for USTA tournament players
+        </footer>
+      </div>
+    </>
   );
 }
